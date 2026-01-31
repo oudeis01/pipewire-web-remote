@@ -7,33 +7,35 @@ on:
 jobs:
   github-release:
     name: Build for ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - arch: x86_64
-            os: ubuntu-24.04
           - arch: aarch64
-            os: ubuntu-24.04-arm64
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libpipewire-0.3-dev pkg-config clang
+      - name: Set up QEMU
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
 
       - name: Build Binary
-        run: cargo build --release --locked
-
-      - name: Prepare Binary Name
-        run: mv target/release/pipewire-web-remote pipewire-web-remote-${{ matrix.arch }}
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: ${{ matrix.arch }}
+          distro: archlinux_latest
+          githubToken: ${{ github.token }}
+          install: |
+            pacman -Syu --noconfirm
+            pacman -S --noconfirm base-devel rustup clang pipewire wireplumber pkgconf
+            rustup default stable
+          run: |
+            cargo build --release --locked
+            mv target/release/pipewire-web-remote pipewire-web-remote-${{ matrix.arch }}
 
       - name: Create/Update GitHub Release
         uses: softprops/action-gh-release@v2
