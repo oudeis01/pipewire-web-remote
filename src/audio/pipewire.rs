@@ -111,14 +111,20 @@ fn run_pipewire_loop(
                 match global.type_ {
                     ObjectType::Node => {
                         let media_class = props.get("media.class");
-                        let (_device_type, is_device) = match media_class {
+                        let (device_type, is_audio_node) = match media_class {
                             Some("Audio/Sink") => (DeviceType::Sink, true),
                             Some("Audio/Source") => (DeviceType::Source, true),
-                            Some(s) if s.starts_with("Stream/") => (DeviceType::Sink, false),
+                            Some(s) if s.starts_with("Stream/") => {
+                                if s.contains("/Input/") {
+                                    (DeviceType::Source, true)
+                                } else {
+                                    (DeviceType::Sink, true)
+                                }
+                            }
                             _ => (DeviceType::Sink, false),
                         };
 
-                        if !is_device {
+                        if !is_audio_node {
                             return;
                         }
 
@@ -141,7 +147,7 @@ fn run_pipewire_loop(
                             id,
                             name,
                             description,
-                            device_type: DeviceType::Sink,
+                            device_type,
                             state: DeviceState::Idle,
                             channels,
                             muted,
