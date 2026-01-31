@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
+use tracing::info;
 use crate::AppState;
 use crate::models::graph::AudioGraph;
 
@@ -26,6 +27,8 @@ pub async fn create_link(
     State(state): State<AppState>,
     Json(payload): Json<CreateLinkRequest>,
 ) -> StatusCode {
+    info!("API Request: Create link from {}:{} to {}:{}", 
+        payload.output_node, payload.output_port, payload.input_node, payload.input_port);
     state.pw_handler.create_link(
         payload.output_node,
         payload.output_port,
@@ -45,6 +48,7 @@ pub async fn delete_link(
     State(state): State<AppState>,
     Json(payload): Json<DeleteLinkRequest>,
 ) -> StatusCode {
+    info!("API Request: Delete link {}", payload.link_id);
     state.pw_handler.delete_link(payload.link_id);
     StatusCode::ACCEPTED
 }

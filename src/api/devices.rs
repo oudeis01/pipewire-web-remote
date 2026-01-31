@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
+use tracing::info;
 use crate::AppState;
 use crate::models::device::AudioDevice;
 
@@ -25,6 +26,7 @@ pub async fn set_volume(
     Path(id): Path<u32>,
     Json(payload): Json<SetVolumeRequest>,
 ) -> StatusCode {
+    info!("API Request: Set volume for device {} to {:.2}", id, payload.volume);
     // 1. Command PipeWire
     state.pw_handler.set_volume(id, payload.volume, payload.timestamp);
     

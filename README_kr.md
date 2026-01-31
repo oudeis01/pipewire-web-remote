@@ -21,7 +21,7 @@ PipeWire 오디오 시스템을 위한 원격 제어 웹 인터페이스입니�
 
 1. 저장소 복제:
    ```bash
-   git clone https://github.com/username/pipewire-web-remote.git
+   git clone https://github.com/oudeis01/pipewire-web-remote.git
    cd pipewire-web-remote
    ```
 

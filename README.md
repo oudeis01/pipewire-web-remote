@@ -21,7 +21,7 @@ A remote control web interface for PipeWire audio systems.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/pipewire-web-remote.git
+   git clone https://github.com/oudeis01/pipewire-web-remote.git
    cd pipewire-web-remote
    ```
 
