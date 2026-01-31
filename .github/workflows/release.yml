@@ -5,36 +5,58 @@ on:
       - 'v*'
 
 jobs:
-  github-release:
-    name: Build for ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - arch: x86_64
-            os: ubuntu-latest
-          - arch: aarch64
-            os: ubuntu-24.04-arm
+  build-x86_64:
+    name: Build for x86_64
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libpipewire-0.3-dev pkg-config clang
-
-      - name: Build Binary
+      - name: Build
         run: cargo build --release --locked
+      - name: Prepare Binary
+        run: mv target/release/pipewire-web-remote pipewire-web-remote-x86_64
+      - name: Create/Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: pipewire-web-remote-x86_64
 
-      - name: Prepare Binary Name
-        run: mv target/release/pipewire-web-remote pipewire-web-remote-${{ matrix.arch }}
-
+  build-arm:
+    name: Build for ${{ matrix.arch }}
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: linux/arm64
+          - arch: armv7h
+            platform: linux/arm/v7
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build in Arch Linux ARM Container
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            agners/archlinuxarm:latest \
+            bash -c "echo 'DownloadUser = root' >> /etc/pacman.conf && \
+                     pacman -Syu --noconfirm && \
+                     pacman -S --noconfirm base-devel rustup clang pipewire wireplumber pkgconf && \
+                     rustup default stable && \
+                     cargo build --release --locked && \
+                     mv target/release/pipewire-web-remote pipewire-web-remote-${{ matrix.arch }}"
       - name: Create/Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -43,14 +65,13 @@ jobs:
 
   aur-push:
     name: Push Source and Binary Packages to AUR
-    needs: github-release
+    needs: [build-x86_64, build-arm]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Publish AUR (Source)
         uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
@@ -60,7 +81,6 @@ jobs:
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           updpkgsums: true
-
       - name: Publish AUR (Binary)
         uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
@@ -70,4 +90,3 @@ jobs:
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           updpkgsums: true
-          update_pkgver: true
