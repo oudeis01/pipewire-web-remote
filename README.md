@@ -33,6 +33,12 @@ yay -S pipewire-web-remote
 yay -S pipewire-web-remote-bin
 ```
 
+#### Supported Architectures
+
+- `x86_64`: Standard PC/Laptop (Intel/AMD)
+- `aarch64`: 64-bit ARM (e.g., Raspberry Pi 4/5 with 64-bit OS)
+- `armv7h`: 32-bit ARM (e.g., Raspberry Pi 2/3/4 with 32-bit OS)
+
 ### From Source
 
 1. Clone the repository:

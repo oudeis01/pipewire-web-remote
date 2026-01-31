@@ -33,6 +33,12 @@ yay -S pipewire-web-remote
 yay -S pipewire-web-remote-bin
 ```
 
+#### 지원 아키텍처
+
+- `x86_64`: 일반 PC/노트북 (Intel/AMD)
+- `aarch64`: 64비트 ARM (예: 64비트 OS가 설치된 라즈베리 파이 4/5)
+- `armv7h`: 32비트 ARM (예: 32비트 OS가 설치된 라즈베리 파이 2/3/4)
+
 ### 소스에서 빌드
 
 1. 저장소 복제:
