@@ -1,6 +1,7 @@
 import { ApiClient } from './lib/api.js';
 import { VolumeView } from './views/volume.js';
 import { PatchbayView } from './views/patchbay.js';
+import { PresetView } from './views/presets.js';
 import './components/slider.js';
 import './components/graph-canvas.js';
 
@@ -10,7 +11,8 @@ class App {
         this.container = document.getElementById('view-container');
         this.views = {
             volume: new VolumeView(this.api),
-            patchbay: new PatchbayView(this.api)
+            patchbay: new PatchbayView(this.api),
+            presets: new PresetView(this.api)
         };
         this.currentView = null;
     }

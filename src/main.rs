@@ -18,6 +18,7 @@ use audio::controller::AudioController;
 use audio::pipewire::{PipeWireHandler, PwEvent};
 use utils::broadcast::{EventBroadcaster, ServerEvent};
 use graph::manager::GraphManager;
+use graph::preset::PresetManager;
 use models::graph::{Node, NodeType};
 
 #[derive(Clone)]
@@ -25,6 +26,8 @@ pub struct AppState {
     pub audio: Arc<RwLock<AudioController>>,
     pub graph: Arc<RwLock<GraphManager>>,
     pub broadcaster: Arc<EventBroadcaster>,
+    pub pw_handler: Arc<PipeWireHandler>,
+    pub preset_manager: Arc<PresetManager>,
 }
 
 #[tokio::main]
@@ -43,12 +46,14 @@ async fn main() -> anyhow::Result<()> {
         GraphManager::new()
     ));
     let broadcaster = Arc::new(EventBroadcaster::new());
+    let preset_manager = Arc::new(PresetManager::new());
+    preset_manager.init().await?;
 
     // 2. Setup PipeWire Event Channel
     let (event_sender, event_receiver) = unbounded();
     
     // 3. Start PipeWire Handler
-    let _pw_handler = PipeWireHandler::new(event_sender)?;
+    let pw_handler = Arc::new(PipeWireHandler::new(event_sender)?);
 
     // 4. Spawn Background Task to Process PipeWire Events
     let audio_clone = audio.clone();
@@ -111,12 +116,18 @@ async fn main() -> anyhow::Result<()> {
         audio,
         graph,
         broadcaster,
+        pw_handler,
+        preset_manager,
     };
 
     let app = Router::new()
         .nest_service("/", ServeDir::new("web"))
         .route("/api/devices", get(api::devices::list_devices))
         .route("/api/graph", get(api::graph::get_graph))
+        .route("/api/link/create", axum::routing::post(api::graph::create_link))
+        .route("/api/link/delete", axum::routing::post(api::graph::delete_link))
+        .route("/api/presets", get(api::presets::list_presets).post(api::presets::save_preset))
+        .route("/api/presets/:name/load", axum::routing::post(api::presets::load_preset))
         .route("/ws", get(api::websocket::handler))
         .with_state(state);
 

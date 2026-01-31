@@ -46,4 +46,20 @@ export class ApiClient {
         const res = await fetch('/api/graph');
         return res.json();
     }
+
+    async createLink(linkData) {
+        await fetch('/api/link/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(linkData)
+        });
+    }
+
+    async deleteLink(linkId) {
+        await fetch('/api/link/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ linkId })
+        });
+    }
 }

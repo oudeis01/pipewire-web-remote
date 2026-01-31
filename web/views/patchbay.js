@@ -13,6 +13,7 @@ export class PatchbayView {
 
         this.loadGraph();
         this.setupRealtime();
+        this.setupInteraction();
 
         return this.element;
     }
@@ -39,5 +40,33 @@ export class PatchbayView {
         this.api.on('PortRemoved', refresh);
         this.api.on('LinkAdded', refresh);
         this.api.on('LinkRemoved', refresh);
+    }
+
+    setupInteraction() {
+        const canvas = this.element.querySelector('graph-canvas');
+        
+        canvas.addEventListener('link-create', async (e) => {
+            const { outputNode, outputPort, inputNode, inputPort } = e.detail;
+            console.log('Creating link:', e.detail);
+            try {
+                await this.api.createLink({ 
+                    output_node: outputNode, 
+                    output_port: outputPort, 
+                    input_node: inputNode, 
+                    input_port: inputPort 
+                });
+            } catch (err) {
+                console.error('Failed to create link:', err);
+            }
+        });
+        
+        canvas.addEventListener('link-delete', async (e) => {
+            console.log('Deleting link:', e.detail.linkId);
+            try {
+                await this.api.deleteLink(e.detail.linkId);
+            } catch (err) {
+                console.error('Failed to delete link:', err);
+            }
+        });
     }
 }
