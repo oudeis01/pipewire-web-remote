@@ -41,4 +41,9 @@ export class ApiClient {
         const res = await fetch('/api/devices');
         return res.json();
     }
+
+    async getGraph() {
+        const res = await fetch('/api/graph');
+        return res.json();
+    }
 }

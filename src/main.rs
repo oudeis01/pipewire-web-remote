@@ -12,14 +12,18 @@ mod api;
 mod audio;
 mod models;
 mod utils;
+mod graph;
 
 use audio::controller::AudioController;
 use audio::pipewire::{PipeWireHandler, PwEvent};
 use utils::broadcast::{EventBroadcaster, ServerEvent};
+use graph::manager::GraphManager;
+use models::graph::{Node, NodeType};
 
 #[derive(Clone)]
 pub struct AppState {
     pub audio: Arc<RwLock<AudioController>>,
+    pub graph: Arc<RwLock<GraphManager>>,
     pub broadcaster: Arc<EventBroadcaster>,
 }
 
@@ -35,6 +39,9 @@ async fn main() -> anyhow::Result<()> {
     let audio = Arc::new(RwLock::new(
         AudioController::new()?
     ));
+    let graph = Arc::new(RwLock::new(
+        GraphManager::new()
+    ));
     let broadcaster = Arc::new(EventBroadcaster::new());
 
     // 2. Setup PipeWire Event Channel
@@ -45,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
 
     // 4. Spawn Background Task to Process PipeWire Events
     let audio_clone = audio.clone();
+    let graph_clone = graph.clone();
     let broadcaster_clone = broadcaster.clone();
 
     tokio::task::spawn_blocking(move || {
@@ -54,16 +62,45 @@ async fn main() -> anyhow::Result<()> {
                 PwEvent::DeviceAdded(device) => {
                     info!("Device Added: {} ({})", device.name, device.id);
                     audio_clone.write().add_device(device.clone());
-                    broadcaster_clone.send(ServerEvent::DeviceAdded(device));
+                    broadcaster_clone.send(ServerEvent::DeviceAdded(device.clone()));
+
+                    // Also add to Graph
+                    let node = Node {
+                        id: device.id,
+                        name: device.name,
+                        node_type: match device.device_type {
+                            models::device::DeviceType::Sink => NodeType::Device,
+                            models::device::DeviceType::Source => NodeType::Device,
+                        },
+                        ports: Vec::new(),
+                    };
+                    graph_clone.write().add_node(node);
                 }
                 PwEvent::DeviceRemoved(id) => {
                     info!("Device Removed: {}", id);
                     audio_clone.write().remove_device(id);
+                    graph_clone.write().remove_node(id);
                     broadcaster_clone.send(ServerEvent::DeviceRemoved(id));
                 }
                 PwEvent::VolumeChanged(id, vol) => {
                     info!("Volume Changed: {} -> {}", id, vol);
                     broadcaster_clone.send(ServerEvent::VolumeChanged { id, volume: vol });
+                }
+                PwEvent::PortAdded(port) => {
+                    graph_clone.write().add_port(port.clone());
+                    broadcaster_clone.send(ServerEvent::PortAdded(port));
+                }
+                PwEvent::PortRemoved(id) => {
+                    graph_clone.write().remove_port(id);
+                    broadcaster_clone.send(ServerEvent::PortRemoved(id));
+                }
+                PwEvent::LinkAdded(link) => {
+                    graph_clone.write().add_link(link.clone());
+                    broadcaster_clone.send(ServerEvent::LinkAdded(link));
+                }
+                PwEvent::LinkRemoved(id) => {
+                    graph_clone.write().remove_link(id);
+                    broadcaster_clone.send(ServerEvent::LinkRemoved(id));
                 }
             }
         }
@@ -72,12 +109,14 @@ async fn main() -> anyhow::Result<()> {
 
     let state = AppState {
         audio,
+        graph,
         broadcaster,
     };
 
     let app = Router::new()
         .nest_service("/", ServeDir::new("web"))
         .route("/api/devices", get(api::devices::list_devices))
+        .route("/api/graph", get(api::graph::get_graph))
         .route("/ws", get(api::websocket::handler))
         .with_state(state);
 

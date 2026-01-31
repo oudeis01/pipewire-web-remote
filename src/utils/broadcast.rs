@@ -1,4 +1,5 @@
 use crate::models::device::AudioDevice;
+use crate::models::graph::{Link, Port};
 use serde::Serialize;
 use tokio::sync::broadcast;
 
@@ -8,6 +9,10 @@ pub enum ServerEvent {
     DeviceAdded(AudioDevice),
     DeviceRemoved(u32),
     VolumeChanged { id: u32, volume: f32 },
+    PortAdded(Port),
+    PortRemoved(u32),
+    LinkAdded(Link),
+    LinkRemoved(u32),
 }
 
 pub struct EventBroadcaster {
@@ -25,7 +30,6 @@ impl EventBroadcaster {
     }
 
     pub fn send(&self, event: ServerEvent) {
-        // We ignore errors if there are no listeners
         let _ = self.sender.send(event);
     }
 }

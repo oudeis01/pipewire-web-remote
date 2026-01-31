@@ -51,6 +51,7 @@ dependencies = [
  "anyhow",
  "axum",
  "crossbeam-channel",
+ "futures",
  "libspa",
  "parking_lot",
  "pipewire",

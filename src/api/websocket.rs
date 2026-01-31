@@ -7,6 +7,7 @@ use axum::{
 };
 use crate::AppState;
 use futures::{sink::SinkExt, stream::StreamExt};
+use futures::stream::SplitSink;
 
 pub async fn handler(
     ws: WebSocketUpgrade,

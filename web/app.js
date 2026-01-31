@@ -1,58 +1,48 @@
 import { ApiClient } from './lib/api.js';
+import { VolumeView } from './views/volume.js';
+import { PatchbayView } from './views/patchbay.js';
 import './components/slider.js';
+import './components/graph-canvas.js';
 
-const api = new ApiClient();
-const container = document.getElementById('device-list');
+class App {
+    constructor() {
+        this.api = new ApiClient();
+        this.container = document.getElementById('view-container');
+        this.views = {
+            volume: new VolumeView(this.api),
+            patchbay: new PatchbayView(this.api)
+        };
+        this.currentView = null;
+    }
 
-function renderDevice(device) {
-    const el = document.createElement('div');
-    el.className = 'device-card';
-    el.id = `device-${device.id}`;
-    el.innerHTML = `
-        <h3>${device.description}</h3>
-        <p class="meta">${device.name}</p>
-        <div class="controls">
-            <volume-slider 
-                value="${Math.round(device.channels[0]?.volume * 100 || 100)}" 
-                data-id="${device.id}">
-            </volume-slider>
-        </div>
-    `;
-    
-    // Add event listener for slider change
-    const slider = el.querySelector('volume-slider');
-    slider.addEventListener('change', (e) => {
-        console.log(`Volume changed for ${device.id}: ${e.detail.value}`);
-        // TODO: Call API to set volume
-    });
+    init() {
+        this.setupNavigation();
+        this.navigate('volume');
+    }
 
-    return el;
+    setupNavigation() {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.dataset.view;
+                this.navigate(view);
+                
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+    }
+
+    navigate(viewName) {
+        if (this.currentView === viewName) return;
+        
+        const view = this.views[viewName];
+        if (view) {
+            this.container.innerHTML = '';
+            this.container.appendChild(view.render());
+            this.currentView = viewName;
+        }
+    }
 }
 
-async function init() {
-    // Initial Load
-    const devices = await api.getDevices();
-    container.innerHTML = '';
-    devices.forEach(d => container.appendChild(renderDevice(d)));
-
-    // Real-time Updates
-    api.on('DeviceAdded', (device) => {
-        if (!document.getElementById(`device-${device.id}`)) {
-            container.appendChild(renderDevice(device));
-        }
-    });
-
-    api.on('DeviceRemoved', (id) => {
-        const el = document.getElementById(`device-${id}`);
-        if (el) el.remove();
-    });
-
-    api.on('VolumeChanged', ({ id, volume }) => {
-        const slider = document.querySelector(`#device-${id} volume-slider`);
-        if (slider) {
-            slider.value = Math.round(volume * 100);
-        }
-    });
-}
-
-init();
+const app = new App();
+app.init();
