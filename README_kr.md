@@ -19,6 +19,15 @@ PipeWire 오디오 시스템을 위한 원격 제어 웹 인터페이스입니�
 
 ## 설치 방법
 
+### Arch Linux (AUR)
+
+`yay`와 같은 AUR 헬퍼를 사용하여 설치할 수 있습니다:
+```bash
+yay -S pipewire-web-remote
+```
+
+### 소스에서 빌드
+
 1. 저장소 복제:
    ```bash
    git clone https://github.com/oudeis01/pipewire-web-remote.git

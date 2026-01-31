@@ -19,6 +19,15 @@ A remote control web interface for PipeWire audio systems.
 
 ## Installation
 
+### Arch Linux (AUR)
+
+Install using an AUR helper like `yay`:
+```bash
+yay -S pipewire-web-remote
+```
+
+### From Source
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/oudeis01/pipewire-web-remote.git
