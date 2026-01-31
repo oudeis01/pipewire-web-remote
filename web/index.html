@@ -10,6 +10,7 @@
             --text-color: #e0e0e0;
             --card-bg: #1e1e1e;
             --primary: #007aff;
+            --secondary-text: #888;
         }
         body {
             background: var(--bg-color);
@@ -17,18 +18,41 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 20px;
+            padding-top: env(safe-area-inset-top);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
         }
         .device-card {
             background: var(--card-bg);
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .device-card h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .device-card .meta {
+            margin: 0 0 16px 0;
+            font-size: 12px;
+            color: var(--secondary-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
         }
     </style>
 </head>
 <body>
     <h1>Audio Devices</h1>
-    <div id="device-list">Loading...</div>
+    <div id="device-list">Connecting...</div>
     <script type="module" src="/app.js"></script>
 </body>
 </html>
