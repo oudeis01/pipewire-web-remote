@@ -3,19 +3,36 @@ on:
   push:
     tags:
       - 'v*' 
+
 jobs:
   github-release:
+    name: Build Binary and Create GitHub Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpipewire-0.3-dev pkg-config clang
+
+      - name: Build Binary
+        run: cargo build --release --locked
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: target/release/pipewire-web-remote
+
   aur-push:
+    name: Push Source and Binary Packages to AUR
     needs: github-release 
     runs-on: ubuntu-latest
     steps:
@@ -23,11 +40,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Publish AUR package
-        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1  # v4 대신 v4.1.1 사용
+
+      - name: Publish AUR (Source)
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
           pkgname: pipewire-web-remote
           pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ github.actor }}@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          updpkgsums: true
+
+      - name: Publish AUR (Binary)
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
+        with:
+          pkgname: pipewire-web-remote-bin
+          pkgbuild: ./PKGBUILD-bin
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

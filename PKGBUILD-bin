@@ -1,0 +1,24 @@
+# Maintainer: ChoihHaram <your_email@example.com>
+pkgname=pipewire-web-remote-bin
+_pkgname=pipewire-web-remote
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A remote control web interface for PipeWire audio systems (Pre-compiled binary)"
+arch=('x86_64')
+url="https://github.com/oudeis01/pipewire-web-remote"
+license=('MIT')
+depends=('pipewire' 'wireplumber')
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+source_x86_64=("$_pkgname-$pkgver::${url}/releases/download/v${pkgver}/$_pkgname")
+source_license=("LICENSE-$pkgver::${url}/raw/v${pkgver}/LICENSE")
+sha256sums_x86_64=('SKIP')
+sha256sums_license=('SKIP')
+
+source=("${source_x86_64[@]}" "${source_license[@]}")
+sha256sums=("${sha256sums_x86_64[@]}" "${sha256sums_license[@]}")
+
+package() {
+  install -Dm755 "${srcdir}/$_pkgname-$pkgver" "${pkgdir}/usr/bin/$_pkgname"
+  install -Dm644 "${srcdir}/LICENSE-$pkgver" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
