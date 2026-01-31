@@ -1,24 +1,28 @@
 # Maintainer: ChoihHaram <your_email@example.com>
 pkgname=pipewire-web-remote-bin
 _pkgname=pipewire-web-remote
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="A remote control web interface for PipeWire audio systems (Pre-compiled binary)"
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 url="https://github.com/oudeis01/pipewire-web-remote"
 license=('MIT')
 depends=('pipewire' 'wireplumber')
 provides=("$_pkgname")
 conflicts=("$_pkgname")
-source_x86_64=("$_pkgname-$pkgver::${url}/releases/download/v${pkgver}/$_pkgname")
-source_license=("LICENSE-$pkgver::${url}/raw/v${pkgver}/LICENSE")
-sha256sums_x86_64=('SKIP')
-sha256sums_license=('SKIP')
 
-source=("${source_x86_64[@]}" "${source_license[@]}")
-sha256sums=("${sha256sums_x86_64[@]}" "${sha256sums_license[@]}")
+source_x86_64=("$_pkgname-x86_64-$pkgver::${url}/releases/download/v${pkgver}/$_pkgname-x86_64")
+source_aarch64=("$_pkgname-aarch64-$pkgver::${url}/releases/download/v${pkgver}/$_pkgname-aarch64")
+source_license=("LICENSE-$pkgver::${url}/raw/v${pkgver}/LICENSE")
+
+source=("${source_license[@]}")
+source_x86_64+=()
+source_aarch64+=()
+sha256sums=('SKIP')
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
 
 package() {
-  install -Dm755 "${srcdir}/$_pkgname-$pkgver" "${pkgdir}/usr/bin/$_pkgname"
-  install -Dm644 "${srcdir}/LICENSE-$pkgver" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  install -Dm755 "$srcdir/$_pkgname-$CARCH-$pkgver" "$pkgdir/usr/bin/$_pkgname"
+  install -Dm644 "$srcdir/LICENSE-$pkgver" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

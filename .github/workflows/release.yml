@@ -2,12 +2,19 @@ name: Release and AUR Push
 on:
   push:
     tags:
-      - 'v*' 
+      - 'v*'
 
 jobs:
   github-release:
-    name: Build Binary and Create GitHub Release
-    runs-on: ubuntu-latest
+    name: Build for ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            os: ubuntu-24.04
+          - arch: aarch64
+            os: ubuntu-24.04-arm64
     permissions:
       contents: write
     steps:
@@ -25,15 +32,18 @@ jobs:
       - name: Build Binary
         run: cargo build --release --locked
 
-      - name: Create GitHub Release
+      - name: Prepare Binary Name
+        run: mv target/release/pipewire-web-remote pipewire-web-remote-${{ matrix.arch }}
+
+      - name: Create/Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: target/release/pipewire-web-remote
+          files: pipewire-web-remote-${{ matrix.arch }}
 
   aur-push:
     name: Push Source and Binary Packages to AUR
-    needs: github-release 
+    needs: github-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -60,3 +70,4 @@ jobs:
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           updpkgsums: true
+          update_pkgver: true
