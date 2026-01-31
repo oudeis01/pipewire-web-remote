@@ -1,0 +1,33 @@
+[package]
+name = "audio-remote"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Framework
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
+
+# Async Runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Concurrency
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+
+# PipeWire
+pipewire = "0.8"
+libspa = "0.8"
