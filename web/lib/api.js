@@ -2,19 +2,12 @@ export class ApiClient {
     constructor() {
         this.listeners = new Map();
         this.ws = null;
-        
-        // Use configured host/port or fallback to window.location
-        this.host = localStorage.getItem('server_host') || window.location.hostname;
-        this.port = localStorage.getItem('server_port') || window.location.port;
-        this.baseUrl = `${window.location.protocol}//${this.host}:${this.port}`;
-        
         this.connect();
     }
 
     connect() {
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Connect to configured address
-        this.ws = new WebSocket(`${proto}//${this.host}:${this.port}/ws`);
+        this.ws = new WebSocket(`${proto}//${window.location.host}/ws`);
 
         this.ws.onmessage = (event) => {
             try {
@@ -45,17 +38,17 @@ export class ApiClient {
     }
 
     async getDevices() {
-        const res = await fetch(`${this.baseUrl}/api/devices`);
+        const res = await fetch('/api/devices');
         return res.json();
     }
 
     async getGraph() {
-        const res = await fetch(`${this.baseUrl}/api/graph`);
+        const res = await fetch('/api/graph');
         return res.json();
     }
 
     async setVolume(id, volume, timestamp = null) {
-        await fetch(`${this.baseUrl}/api/device/${id}/volume`, {
+        await fetch(`/api/device/${id}/volume`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ volume, timestamp })
@@ -63,7 +56,7 @@ export class ApiClient {
     }
 
     async createLink(linkData) {
-        await fetch(`${this.baseUrl}/api/link/create`, {
+        await fetch('/api/link/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(linkData)
@@ -71,7 +64,7 @@ export class ApiClient {
     }
 
     async deleteLink(linkId) {
-        await fetch(`${this.baseUrl}/api/link/delete`, {
+        await fetch('/api/link/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ linkId })
