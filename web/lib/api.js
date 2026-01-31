@@ -12,6 +12,7 @@ export class ApiClient {
         this.ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
+                console.log('WS Message received:', msg.type);
                 this.emit(msg.type, msg.data);
             } catch (e) {
                 console.error('Failed to parse WS message:', e);

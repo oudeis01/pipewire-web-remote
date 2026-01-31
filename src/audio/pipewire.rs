@@ -1,12 +1,16 @@
 use crate::models::device::{AudioDevice, Channel, DeviceState, DeviceType};
 use crate::models::graph::{Link, Port, PortDirection};
 use crossbeam_channel::{Receiver, Sender};
+use parking_lot::Mutex;
 use pipewire as pw;
 use pipewire::context::Context;
 use pipewire::main_loop::MainLoop;
 use pipewire::types::ObjectType;
+use std::collections::HashSet;
 use std::process::Command;
+use std::sync::Arc;
 use std::thread;
+use tracing::{error, info};
 
 pub enum PwCommand {
     SetVolume(u32, f32, Option<u64>),
@@ -35,7 +39,7 @@ impl PipeWireHandler {
 
         thread::spawn(move || {
             if let Err(e) = run_pipewire_loop(cmd_receiver, event_sender) {
-                eprintln!("PipeWire loop error: {}", e);
+                error!("PipeWire loop error: {}", e);
             }
         });
 
@@ -96,6 +100,10 @@ fn run_pipewire_loop(
     let sender_remove = event_sender.clone();
     let sender_cmd = event_sender.clone();
 
+    let tracked_ids = Arc::new(Mutex::new(HashSet::new()));
+    let tracked_ids_global = tracked_ids.clone();
+    let tracked_ids_remove = tracked_ids.clone();
+
     let _listener = registry
         .add_listener_local()
         .global(move |global| {
@@ -103,17 +111,23 @@ fn run_pipewire_loop(
                 match global.type_ {
                     ObjectType::Node => {
                         let media_class = props.get("media.class");
-                        let (_device_type, _is_device) = match media_class {
+                        let (_device_type, is_device) = match media_class {
                             Some("Audio/Sink") => (DeviceType::Sink, true),
                             Some("Audio/Source") => (DeviceType::Source, true),
                             Some(s) if s.starts_with("Stream/") => (DeviceType::Sink, false),
                             _ => (DeviceType::Sink, false),
                         };
 
+                        if !is_device {
+                            return;
+                        }
+
                         let name = props.get("node.name").unwrap_or("Unknown").to_string();
                         let description =
                             props.get("node.description").unwrap_or(&name).to_string();
                         let id = global.id;
+
+                        tracked_ids_global.lock().insert(id);
 
                         let (vol, muted) = get_real_volume(id);
 
@@ -137,6 +151,9 @@ fn run_pipewire_loop(
                         let _ = sender_global.send(PwEvent::DeviceAdded(device));
                     }
                     ObjectType::Port => {
+                        let id = global.id;
+                        tracked_ids_global.lock().insert(id);
+
                         let node_id = props
                             .get("node.id")
                             .and_then(|s| s.parse::<u32>().ok())
@@ -149,7 +166,7 @@ fn run_pipewire_loop(
                         };
 
                         let port = Port {
-                            id: global.id,
+                            id,
                             node_id,
                             name: props.get("port.name").unwrap_or("").to_string(),
                             direction,
@@ -157,6 +174,9 @@ fn run_pipewire_loop(
                         let _ = sender_global.send(PwEvent::PortAdded(port));
                     }
                     ObjectType::Link => {
+                        let id = global.id;
+                        tracked_ids_global.lock().insert(id);
+
                         let output_node = props
                             .get("link.output.node")
                             .and_then(|s| s.parse::<u32>().ok())
@@ -175,7 +195,7 @@ fn run_pipewire_loop(
                             .unwrap_or(0);
 
                         let link = Link {
-                            id: global.id,
+                            id,
                             output_node,
                             output_port,
                             input_node,
@@ -188,9 +208,11 @@ fn run_pipewire_loop(
             }
         })
         .global_remove(move |id| {
-            let _ = sender_remove.send(PwEvent::DeviceRemoved(id));
-            let _ = sender_remove.send(PwEvent::PortRemoved(id));
-            let _ = sender_remove.send(PwEvent::LinkRemoved(id));
+            if tracked_ids_remove.lock().remove(&id) {
+                let _ = sender_remove.send(PwEvent::DeviceRemoved(id));
+                let _ = sender_remove.send(PwEvent::PortRemoved(id));
+                let _ = sender_remove.send(PwEvent::LinkRemoved(id));
+            }
         })
         .register();
 
@@ -200,7 +222,7 @@ fn run_pipewire_loop(
             match cmd {
                 PwCommand::SetVolume(id, vol, timestamp) => {
                     let vol_pct = format!("{}%", (vol * 100.0) as u32);
-                    println!("EXEC: wpctl set-volume {} {}", id, vol_pct);
+                    info!("EXEC: wpctl set-volume {} {}", id, vol_pct);
                     if let Ok(out) = Command::new("wpctl")
                         .arg("set-volume")
                         .arg(id.to_string())
@@ -208,7 +230,7 @@ fn run_pipewire_loop(
                         .output()
                     {
                         if !out.status.success() {
-                            eprintln!("wpctl error: {}", String::from_utf8_lossy(&out.stderr));
+                            error!("wpctl error: {}", String::from_utf8_lossy(&out.stderr));
                         } else {
                             // Signal volume change back to main loop for broadcasting
                             let _ = sender_cmd.send(PwEvent::VolumeChanged(id, vol, timestamp));
@@ -217,7 +239,7 @@ fn run_pipewire_loop(
                 }
                 PwCommand::SetMute(id, muted) => {
                     let arg = if muted { "1" } else { "0" };
-                    println!("EXEC: wpctl set-mute {} {}", id, arg);
+                    info!("EXEC: wpctl set-mute {} {}", id, arg);
                     let _ = Command::new("wpctl")
                         .arg("set-mute")
                         .arg(id.to_string())
@@ -225,21 +247,21 @@ fn run_pipewire_loop(
                         .spawn();
                 }
                 PwCommand::CreateLink(_out_node, out_port, _in_node, in_port) => {
-                    println!("EXEC: pw-link {} {}", out_port, in_port);
+                    info!("EXEC: pw-link {} {}", out_port, in_port);
                     let _ = Command::new("pw-link")
                         .arg(out_port.to_string())
                         .arg(in_port.to_string())
                         .spawn();
                 }
                 PwCommand::DeleteLink(link_id) => {
-                    println!("EXEC: pw-link -d {}", link_id);
+                    info!("EXEC: pw-link -d {}", link_id);
                     if let Ok(out) = Command::new("pw-link")
                         .arg("-d")
                         .arg(link_id.to_string())
                         .output()
                     {
                         if !out.status.success() {
-                            eprintln!("pw-link error: {}", String::from_utf8_lossy(&out.stderr));
+                            error!("pw-link error: {}", String::from_utf8_lossy(&out.stderr));
                         }
                     }
                 }

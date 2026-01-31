@@ -39,10 +39,6 @@ A remote control web interface for PipeWire audio systems.
 
 2. Open a web browser and navigate to `http://localhost:8449`.
 
-## Configuration
-
-Server connection settings (Address and Port) can be modified in the **Setup** view. These settings are persisted in the browser's `localStorage`.
-
 ## Deployment
 
 To install as a systemd user service:

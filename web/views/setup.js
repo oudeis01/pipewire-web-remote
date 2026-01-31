@@ -2,8 +2,12 @@ export class SetupView {
     constructor(api) {
         this.api = api;
         this.element = null;
-        this.logBuffer = [];
+        this.logBuffer = ["Console initialized..."];
         this.maxLogs = 500;
+        
+        this.api.on('Log', (msg) => {
+            this.addLog(msg);
+        });
     }
 
     render() {
@@ -59,16 +63,17 @@ export class SetupView {
             </style>
         `;
 
-        this.setupLogging();
-        return this.element;
-    }
-
-    setupLogging() {
-        // Clear buffer on setup
-        this.logBuffer = [];
-        this.api.on('Log', (msg) => {
-            this.addLog(msg);
+        // Fill with existing logs
+        const consoleEl = this.element.querySelector('#log-console');
+        this.logBuffer.forEach(msg => {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            line.textContent = msg;
+            consoleEl.appendChild(line);
         });
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+
+        return this.element;
     }
 
     addLog(msg) {
