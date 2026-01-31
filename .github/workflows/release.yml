@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Publish AUR package
-        uses: KSXGitHub/github-actions-deploy-aur@v4
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.1  # v4 대신 v4.1.1 사용
         with:
           pkgname: pipewire-web-remote
           pkgbuild: ./PKGBUILD
