@@ -46,8 +46,8 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             agners/archlinuxarm:latest \
-            bash -c "pacman -Syu --noconfirm && \
-                     pacman -S --noconfirm base-devel rustup clang pipewire wireplumber pkgconf && \
+            bash -c "pacman -Syu --noconfirm --disable-sandbox && \
+                     pacman -S --noconfirm --disable-sandbox base-devel rustup clang pipewire wireplumber pkgconf && \
                      rustup default stable && \
                      cargo build --release --locked && \
                      mv target/release/pipewire-web-remote pipewire-web-remote-aarch64"
