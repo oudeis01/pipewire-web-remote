@@ -8,11 +8,17 @@ use tokio::sync::broadcast;
 pub enum ServerEvent {
     DeviceAdded(AudioDevice),
     DeviceRemoved(u32),
-    VolumeChanged { id: u32, volume: f32 },
+    VolumeChanged {
+        id: u32,
+        volume: f32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<u64>,
+    },
     PortAdded(Port),
     PortRemoved(u32),
     LinkAdded(Link),
     LinkRemoved(u32),
+    Log(String),
 }
 
 pub struct EventBroadcaster {
@@ -21,7 +27,7 @@ pub struct EventBroadcaster {
 
 impl EventBroadcaster {
     pub fn new() -> Self {
-        let (sender, _) = broadcast::channel(100);
+        let (sender, _) = broadcast::channel(1000); // Increased buffer for logs
         Self { sender }
     }
 

@@ -2,10 +2,10 @@ use axum::{
     Router,
     routing::get,
 };
-use tower_http::services::ServeDir;
 use std::sync::Arc;
 use parking_lot::RwLock;
 use tracing::{info, error};
+use tracing_subscriber::prelude::*;
 use crossbeam_channel::unbounded;
 
 mod api;
@@ -17,8 +17,9 @@ mod graph;
 use audio::controller::AudioController;
 use audio::pipewire::{PipeWireHandler, PwEvent};
 use utils::broadcast::{EventBroadcaster, ServerEvent};
+use utils::logger::WsLogLayer;
+use utils::assets::{index_handler, static_handler};
 use graph::manager::GraphManager;
-use graph::preset::PresetManager;
 use models::graph::{Node, NodeType};
 
 #[derive(Clone)]
@@ -27,16 +28,22 @@ pub struct AppState {
     pub graph: Arc<RwLock<GraphManager>>,
     pub broadcaster: Arc<EventBroadcaster>,
     pub pw_handler: Arc<PipeWireHandler>,
-    pub preset_manager: Arc<PresetManager>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter("audio_remote=debug,axum=info")
+    let broadcaster = Arc::new(EventBroadcaster::new());
+
+    // Initialize tracing with WS log streamer
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::EnvFilter::from_default_env()
+            .add_directive("pipewire_web_remote=debug".parse()?)
+            .add_directive("axum=info".parse()?))
+        .with(WsLogLayer::new(broadcaster.clone()))
         .init();
 
-    info!("Starting Audio Remote Control Server...");
+    info!("Starting PipeWire Web Remote Server...");
 
     // 1. Initialize Components
     let audio = Arc::new(RwLock::new(
@@ -45,9 +52,6 @@ async fn main() -> anyhow::Result<()> {
     let graph = Arc::new(RwLock::new(
         GraphManager::new()
     ));
-    let broadcaster = Arc::new(EventBroadcaster::new());
-    let preset_manager = Arc::new(PresetManager::new());
-    preset_manager.init().await?;
 
     // 2. Setup PipeWire Event Channel
     let (event_sender, event_receiver) = unbounded();
@@ -69,7 +73,6 @@ async fn main() -> anyhow::Result<()> {
                     audio_clone.write().add_device(device.clone());
                     broadcaster_clone.send(ServerEvent::DeviceAdded(device.clone()));
 
-                    // Also add to Graph
                     let node = Node {
                         id: device.id,
                         name: device.name,
@@ -87,9 +90,9 @@ async fn main() -> anyhow::Result<()> {
                     graph_clone.write().remove_node(id);
                     broadcaster_clone.send(ServerEvent::DeviceRemoved(id));
                 }
-                PwEvent::VolumeChanged(id, vol) => {
+                PwEvent::VolumeChanged(id, vol, timestamp) => {
                     info!("Volume Changed: {} -> {}", id, vol);
-                    broadcaster_clone.send(ServerEvent::VolumeChanged { id, volume: vol });
+                    broadcaster_clone.send(ServerEvent::VolumeChanged { id, volume: vol, timestamp });
                 }
                 PwEvent::PortAdded(port) => {
                     graph_clone.write().add_port(port.clone());
@@ -117,17 +120,16 @@ async fn main() -> anyhow::Result<()> {
         graph,
         broadcaster,
         pw_handler,
-        preset_manager,
     };
 
     let app = Router::new()
-        .nest_service("/", ServeDir::new("web"))
+        .route("/", get(index_handler))
+        .route("/*path", get(static_handler))
         .route("/api/devices", get(api::devices::list_devices))
+        .route("/api/device/:id/volume", axum::routing::post(api::devices::set_volume))
         .route("/api/graph", get(api::graph::get_graph))
         .route("/api/link/create", axum::routing::post(api::graph::create_link))
         .route("/api/link/delete", axum::routing::post(api::graph::delete_link))
-        .route("/api/presets", get(api::presets::list_presets).post(api::presets::save_preset))
-        .route("/api/presets/:name/load", axum::routing::post(api::presets::load_preset))
         .route("/ws", get(api::websocket::handler))
         .with_state(state);
 

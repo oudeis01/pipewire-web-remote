@@ -1,7 +1,9 @@
 use axum::{
-    extract::State,
+    extract::{Path, State},
+    http::StatusCode,
     Json,
 };
+use serde::Deserialize;
 use crate::AppState;
 use crate::models::device::AudioDevice;
 
@@ -10,4 +12,21 @@ pub async fn list_devices(
 ) -> Json<Vec<AudioDevice>> {
     let audio = state.audio.read();
     Json(audio.list_devices())
+}
+
+#[derive(Deserialize)]
+pub struct SetVolumeRequest {
+    pub volume: f32,
+    pub timestamp: Option<u64>,
+}
+
+pub async fn set_volume(
+    State(state): State<AppState>,
+    Path(id): Path<u32>,
+    Json(payload): Json<SetVolumeRequest>,
+) -> StatusCode {
+    // 1. Command PipeWire
+    state.pw_handler.set_volume(id, payload.volume, payload.timestamp);
+    
+    StatusCode::OK
 }

@@ -31,12 +31,3 @@ pub struct AudioDevice {
     pub muted: bool,
     pub base_volume: f32,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Stream {
-    pub id: u32,
-    pub application_name: String,
-    pub sink_id: u32,
-    pub volume: f32,
-    pub muted: bool,
-}

@@ -1,13 +1,10 @@
-use crate::models::graph::{AudioGraph, Link, Node, NodeType, Port, PortDirection};
-use anyhow::Result;
+use crate::models::graph::{AudioGraph, Link, Node, Port};
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct GraphManager {
     graph: AudioGraph,
-    // Auxiliary maps for O(1) lookups if needed,
-    // but for small graphs, linear scan is fine.
-    // We will stick to the struct fields for now.
+    orphan_ports: HashMap<u32, Vec<Port>>,
 }
 
 impl GraphManager {
@@ -17,6 +14,7 @@ impl GraphManager {
                 nodes: Vec::new(),
                 links: Vec::new(),
             },
+            orphan_ports: HashMap::new(),
         }
     }
 
@@ -27,19 +25,26 @@ impl GraphManager {
     pub fn clear(&mut self) {
         self.graph.nodes.clear();
         self.graph.links.clear();
+        self.orphan_ports.clear();
     }
 
-    pub fn add_node(&mut self, node: Node) {
-        // Idempotency: if node exists, update it or ignore?
-        // For PW events, usually we get "Added" once.
-        // We'll replace if exists to be safe.
+    pub fn add_node(&mut self, mut node: Node) {
         self.graph.nodes.retain(|n| n.id != node.id);
+
+        // Attach orphans if any
+        if let Some(ports) = self.orphan_ports.remove(&node.id) {
+            for p in ports {
+                if !node.ports.iter().any(|np| np.id == p.id) {
+                    node.ports.push(p);
+                }
+            }
+        }
+
         self.graph.nodes.push(node);
     }
 
     pub fn remove_node(&mut self, id: u32) {
         self.graph.nodes.retain(|n| n.id != id);
-        // Also remove links connected to this node
         self.graph
             .links
             .retain(|l| l.output_node != id && l.input_node != id);
@@ -47,13 +52,15 @@ impl GraphManager {
 
     pub fn add_port(&mut self, port: Port) {
         if let Some(node) = self.graph.nodes.iter_mut().find(|n| n.id == port.node_id) {
+            // Remove existing if update
             node.ports.retain(|p| p.id != port.id);
             node.ports.push(port);
         } else {
-            // Warn? or Store orphan ports?
-            // PipeWire sometimes sends port info before node info?
-            // Usually Node comes first. We'll ignore orphans for now or handle them if it becomes an issue.
-            eprintln!("Warning: Port added for unknown node {}", port.node_id);
+            // Store orphan
+            self.orphan_ports
+                .entry(port.node_id)
+                .or_default()
+                .push(port);
         }
     }
 
@@ -61,6 +68,11 @@ impl GraphManager {
         for node in &mut self.graph.nodes {
             node.ports.retain(|p| p.id != id);
         }
+        // Also check orphans
+        for ports in self.orphan_ports.values_mut() {
+            ports.retain(|p| p.id != id);
+        }
+
         self.graph
             .links
             .retain(|l| l.output_port != id && l.input_port != id);

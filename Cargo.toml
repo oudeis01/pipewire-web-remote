@@ -1,5 +1,5 @@
 [package]
-name = "audio-remote"
+name = "pipewire-web-remote"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,6 +8,10 @@ edition = "2021"
 axum = { version = "0.7", features = ["ws"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
+
+# Static Asset Embedding
+rust-embed = "8.5"
+mime_guess = "2.0"
 
 # Async Runtime
 tokio = { version = "1", features = ["full"] }
