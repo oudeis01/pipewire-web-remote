@@ -34,10 +34,11 @@ PipeWire 오디오 시스템을 위한 원격 제어 웹 인터페이스입니�
 
 1. 서버 실행:
    ```bash
-   ./target/release/pipewire-web-remote
+   ./target/release/pipewire-web-remote [port]
    ```
+   (포트를 지정하지 않으면 기본값으로 8449가 사용됩니다)
 
-2. 웹 브라우저에서 `http://localhost:8449`로 접속.
+2. 웹 브라우저에서 `http://localhost:8449`(또는 지정한 포트)로 접속.
 
 ## 배포 (systemd --user)
 

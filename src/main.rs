@@ -133,8 +133,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/ws", get(api::websocket::handler))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8449").await?;
-    info!("Server running at http://0.0.0.0:8449");
+    let port = std::env::args()
+        .nth(1)
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(8449);
+
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    info!("Server running at http://{}", addr);
     
     axum::serve(listener, app).await?;
     

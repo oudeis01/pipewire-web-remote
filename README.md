@@ -34,10 +34,11 @@ A remote control web interface for PipeWire audio systems.
 
 1. Start the server:
    ```bash
-   ./target/release/pipewire-web-remote
+   ./target/release/pipewire-web-remote [port]
    ```
+   (Default port is 8449 if not specified)
 
-2. Open a web browser and navigate to `http://localhost:8449`.
+2. Open a web browser and navigate to `http://localhost:8449` (or your chosen port).
 
 ## Deployment
 
