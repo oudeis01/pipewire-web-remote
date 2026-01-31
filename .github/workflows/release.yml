@@ -39,14 +39,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      - name: Build in Arch Linux Container
+      - name: Build in Arch Linux ARM Container
         run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker run --rm \
             --platform linux/arm64 \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            archlinux:latest \
+            agners/archlinuxarm:latest \
             bash -c "pacman -Syu --noconfirm && \
                      pacman -S --noconfirm base-devel rustup clang pipewire wireplumber pkgconf && \
                      rustup default stable && \
