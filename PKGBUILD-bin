@@ -1,4 +1,4 @@
-# Maintainer: ChoihHaram <your_email@example.com>
+# Maintainer: ChoihHaram <altitudinem at google dot com>
 pkgname=pipewire-web-remote-bin
 _pkgname=pipewire-web-remote
 pkgver=0.1.1
