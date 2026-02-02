@@ -16,7 +16,9 @@ export class GraphCanvas extends HTMLElement {
             startPanOffset: { x: 0, y: 0 },
             nodeOffset: { x: 0, y: 0 },
             initialPinchDistance: 0,
-            initialPinchScale: 1.0
+            initialPinchScale: 1.0,
+            touchStartTime: 0,
+            hasMoved: false
         };
     }
 
@@ -108,16 +110,29 @@ export class GraphCanvas extends HTMLElement {
                     stroke: #007aff;
                     stroke-width: 2;
                 }
+                .port-hitbox {
+                    fill: transparent;
+                    stroke: none;
+                    cursor: pointer;
+                    pointer-events: all;
+                }
                 .link {
                     stroke: #007aff;
                     stroke-width: 2;
                     fill: none;
                     opacity: 0.6;
+                    pointer-events: none;
                 }
                 .link:hover {
                     stroke-width: 4;
                     opacity: 1;
+                }
+                .link-hitbox {
+                    stroke: transparent;
+                    stroke-width: 20;
+                    fill: none;
                     cursor: pointer;
+                    pointer-events: all;
                 }
                 .drag-line {
                     stroke: #ff9500;
@@ -198,18 +213,26 @@ export class GraphCanvas extends HTMLElement {
         g.appendChild(text);
         
         node.ports.forEach((port, idx) => {
-            const pCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            pCircle.setAttribute('class', 'port');
-            pCircle.setAttribute('r', 7);
-            pCircle.dataset.id = port.id;
-            pCircle.dataset.nodeId = node.id;
-            pCircle.dataset.direction = port.direction;
-            
             const px = port.direction === 'Input' ? 0 : width;
             const py = 50 + (idx * 24);
             
+            const portGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
+            const hitbox = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            hitbox.setAttribute('class', 'port-hitbox');
+            hitbox.setAttribute('r', 16);
+            hitbox.setAttribute('cx', px);
+            hitbox.setAttribute('cy', py);
+            hitbox.dataset.id = port.id;
+            hitbox.dataset.nodeId = node.id;
+            hitbox.dataset.direction = port.direction;
+            
+            const pCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            pCircle.setAttribute('class', 'port');
+            pCircle.setAttribute('r', 7);
             pCircle.setAttribute('cx', px);
             pCircle.setAttribute('cy', py);
+            pCircle.setAttribute('pointer-events', 'none');
             
             port._absPos = { x: pos.x + px, y: pos.y + py };
             
@@ -220,9 +243,11 @@ export class GraphCanvas extends HTMLElement {
             pText.setAttribute('text-anchor', port.direction === 'Input' ? 'start' : 'end');
             pText.setAttribute('fill', '#aaa');
             pText.textContent = port.name.substring(0, 15);
-            g.appendChild(pText);
             
-            g.appendChild(pCircle);
+            portGroup.appendChild(hitbox);
+            portGroup.appendChild(pCircle);
+            g.appendChild(pText);
+            g.appendChild(portGroup);
         });
         
         return g;
@@ -249,16 +274,23 @@ export class GraphCanvas extends HTMLElement {
         const x2 = inPos.x;
         const y2 = inPos.y + 50 + (inPortIdx * 24);
         
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('class', 'link');
-        
         const cp1x = x1 + 100;
         const cp2x = x2 - 100;
+        const pathData = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`;
         
-        path.setAttribute('d', `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`);
-        path.dataset.id = link.id;
-        path.onclick = (e) => {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        const hitbox = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hitbox.setAttribute('class', 'link-hitbox');
+        hitbox.setAttribute('d', pathData);
+        
+        const visiblePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        visiblePath.setAttribute('class', 'link');
+        visiblePath.setAttribute('d', pathData);
+        
+        const handleDelete = (e) => {
             e.stopPropagation();
+            e.preventDefault();
             this.dispatchEvent(new CustomEvent('link-delete', {
                 detail: { linkId: link.id },
                 bubbles: true,
@@ -266,7 +298,18 @@ export class GraphCanvas extends HTMLElement {
             }));
         };
         
-        return path;
+        hitbox.addEventListener('click', handleDelete);
+        hitbox.addEventListener('touchend', (e) => {
+            if (!this.dragState.active) {
+                handleDelete(e);
+            }
+        });
+        
+        group.appendChild(visiblePath);
+        group.appendChild(hitbox);
+        group.dataset.id = link.id;
+        
+        return group;
     }
 
     setupEvents() {
@@ -353,7 +396,7 @@ export class GraphCanvas extends HTMLElement {
         }
 
         const path = e.composedPath();
-        const portTarget = path.find(el => el.classList && el.classList.contains('port'));
+        const portTarget = path.find(el => el.classList && (el.classList.contains('port') || el.classList.contains('port-hitbox')));
         if (portTarget) {
             this.startLinkDrag(portTarget);
             return;
@@ -498,7 +541,7 @@ export class GraphCanvas extends HTMLElement {
         dragLine.style.display = 'none';
         
         const target = this.shadowRoot.elementFromPoint(normalized.clientX, normalized.clientY);
-        const port = (target && target.classList.contains('port')) ? target : null;
+        const port = (target && (target.classList.contains('port') || target.classList.contains('port-hitbox'))) ? target : null;
         
         if (port) {
             const endPortId = parseInt(port.dataset.id);
