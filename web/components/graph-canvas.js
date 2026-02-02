@@ -276,8 +276,8 @@ export class GraphCanvas extends HTMLElement {
         document.addEventListener('mousemove', (e) => this.onPointerMove(e));
         document.addEventListener('mouseup', (e) => this.onPointerUp(e));
         
-        // Touch events on document for consistency and to prevent losing drag state
-        document.addEventListener('touchstart', (e) => this.onPointerDown(e), { passive: false });
+        // Use capture phase to prevent duplicate touchstart events during drag
+        svg.addEventListener('touchstart', (e) => this.onPointerDown(e), { passive: false, capture: true });
         document.addEventListener('touchmove', (e) => this.onPointerMove(e), { passive: false });
         document.addEventListener('touchend', (e) => this.onPointerUp(e));
         document.addEventListener('touchcancel', (e) => this.onPointerUp(e));
@@ -324,16 +324,21 @@ export class GraphCanvas extends HTMLElement {
     }
 
     onPointerDown(e) {
+        if (this.dragState.active) {
+            if (e.type.startsWith('touch')) {
+                e.preventDefault();
+            }
+            return;
+        }
+        
+        if (e.type.startsWith('touch')) {
+            e.preventDefault();
+        }
+
         const normalized = this.normalizeEvent(e);
         const { clientX, clientY, touches } = normalized;
 
-        // Ignore multi-touch if we're already dragging something
-        if (this.dragState.active && touches.length > 1) {
-            return;
-        }
-
-        // Handle pinch zoom only if not already dragging
-        if (!this.dragState.active && touches.length === 2) {
+        if (touches.length === 2) {
             this.dragState = {
                 type: 'pinch',
                 active: true,
@@ -343,7 +348,6 @@ export class GraphCanvas extends HTMLElement {
             return;
         }
 
-        // Skip if multi-touch but not a pinch gesture
         if (touches.length > 1) {
             return;
         }
@@ -414,7 +418,9 @@ export class GraphCanvas extends HTMLElement {
     }
 
     onPointerMove(e) {
-        if (!this.dragState.active) return;
+        if (!this.dragState.active) {
+            return;
+        }
         
         const normalized = this.normalizeEvent(e);
         if (normalized.originalEvent.cancelable) {
@@ -449,7 +455,11 @@ export class GraphCanvas extends HTMLElement {
             const newY = y - this.dragState.nodeOffset.y;
             
             this.nodePositions.set(nodeId, { x: newX, y: newY });
-            this.draw();
+            
+            const nodeElement = this.shadowRoot.querySelector(`[data-id="${nodeId}"]`);
+            if (nodeElement) {
+                nodeElement.setAttribute('transform', `translate(${newX}, ${newY})`);
+            }
         } else if (this.dragState.type === 'pan') {
             const dx = clientX - this.dragState.startPos.x;
             const dy = clientY - this.dragState.startPos.y;
