@@ -4,15 +4,18 @@ use axum::{
 };
 use std::sync::Arc;
 use parking_lot::RwLock;
-use tracing::{info, error};
+use tracing::{info, error, warn};
 use tracing_subscriber::prelude::*;
 use crossbeam_channel::unbounded;
+use clap::Parser;
 
 mod api;
 mod audio;
 mod models;
 mod utils;
 mod graph;
+mod cli;
+mod systemd;
 
 use audio::controller::AudioController;
 use audio::pipewire::{PipeWireHandler, PwEvent};
@@ -32,9 +35,19 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let cli = cli::Cli::parse();
+
+    if let Some(cli::Commands::Systemd { action }) = cli.command {
+        match action {
+            cli::SystemdAction::Install { enable, now } => {
+                tracing_subscriber::fmt::init();
+                return systemd::install_user_service(enable, now);
+            }
+        }
+    }
+
     let broadcaster = Arc::new(EventBroadcaster::new());
 
-    // Initialize tracing with WS log streamer
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(tracing_subscriber::EnvFilter::from_default_env()
@@ -133,14 +146,20 @@ async fn main() -> anyhow::Result<()> {
         .route("/ws", get(api::websocket::handler))
         .with_state(state);
 
-    let port = std::env::args()
-        .nth(1)
-        .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(8449);
-
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = cli.get_listen_address();
     let listener = tokio::net::TcpListener::bind(&addr).await?;
+    
     info!("Server running at http://{}", addr);
+    
+    if cli.is_external() {
+        warn!("⚠ SECURITY WARNING: Server is listening on ALL interfaces (0.0.0.0)");
+        warn!("⚠ External connections are ALLOWED. Check your firewall settings!");
+        warn!("⚠ For localhost-only access, remove --allow-external flag");
+    } else {
+        info!("✓ Server is localhost-only (127.0.0.1)");
+        info!("✓ External connections are blocked");
+        info!("  To allow external access, use: --allow-external");
+    }
     
     axum::serve(listener, app).await?;
     

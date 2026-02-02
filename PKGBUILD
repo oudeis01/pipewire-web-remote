@@ -8,6 +8,7 @@ url="https://github.com/oudeis01/pipewire-web-remote"
 license=('MIT')
 depends=('pipewire' 'wireplumber')
 makedepends=('cargo' 'pkgconf' 'clang')
+install="${pkgname}.install"
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP') 
 prepare() {
@@ -29,5 +30,6 @@ check() {
 package() {
   cd "$pkgname-$pkgver"
   install -Dm755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+  install -Dm644 "systemd/pipewire-web-remote.service" "$pkgdir/usr/lib/systemd/user/pipewire-web-remote.service"
   install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

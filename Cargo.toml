@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
 # Web Framework
 axum = { version = "0.7", features = ["ws"] }
 tower = "0.4"
@@ -32,6 +35,9 @@ thiserror = "1.0"
 # Concurrency
 parking_lot = "0.12"
 crossbeam-channel = "0.5"
+
+# System
+dirs = "5.0"
 
 # PipeWire
 pipewire = "0.8"

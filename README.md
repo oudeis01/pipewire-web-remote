@@ -54,48 +54,110 @@ yay -S pipewire-web-remote-bin
 
 ## Usage
 
-1. Start the server:
-   ```bash
-   ./target/release/pipewire-web-remote [port]
-   ```
-   (Default port is 8449 if not specified)
+### Command Line Options
 
-2. Open a web browser and navigate to `http://localhost:8449` (or your chosen port).
+```bash
+pipewire-web-remote [OPTIONS] [COMMAND]
+
+Options:
+  -l, --listen <HOST:PORT>  Address and port to listen on [default: 127.0.0.1:8449]
+      --allow-external      Allow external connections (binds to 0.0.0.0)
+  -h, --help                Print help
+  -V, --version             Print version
+
+Commands:
+  systemd    Manage systemd user service installation
+```
+
+### Running the Server
+
+**Localhost only (default, secure):**
+```bash
+pipewire-web-remote
+# Server runs at http://127.0.0.1:8449
+```
+
+**Custom port:**
+```bash
+pipewire-web-remote --listen 127.0.0.1:9000
+```
+
+**Allow external connections (⚠ Security Warning):**
+```bash
+pipewire-web-remote --allow-external
+# Server runs at http://0.0.0.0:8449
+# Make sure to check your firewall settings!
+```
+
+### Web Interface
+
+Open a web browser and navigate to `http://localhost:8449` (or your chosen port).
 
 ## Deployment
 
-To install as a systemd user service:
+### Systemd User Service
 
-1. Create the user systemd directory:
-   ```bash
-   mkdir -p ~/.config/systemd/user/
-   ```
+#### From AUR Package
 
-2. Copy the binary to a local bin directory (e.g., `~/.local/bin/`):
-   ```bash
-   mkdir -p ~/.local/bin/
-   cp target/release/pipewire-web-remote ~/.local/bin/
-   ```
+The systemd user service file is automatically installed to `/usr/lib/systemd/user/`.
 
-3. Create `~/.config/systemd/user/pwr.service`:
-   ```ini
-   [Unit]
-   Description=PipeWire Web Remote Service
-   After=pipewire.service
+To enable and start the service:
 
-   [Service]
-   ExecStart=%h/.local/bin/pipewire-web-remote
-   Restart=always
+```bash
+systemctl --user enable --now pipewire-web-remote.service
+```
 
-   [Install]
-   WantedBy=default.target
-   ```
+To start on boot (even when not logged in):
 
-4. Enable and start:
-   ```bash
-   systemctl --user daemon-reload
-   systemctl --user enable --now pwr
-   ```
+```bash
+loginctl enable-linger $USER
+```
+
+#### From Source (cargo install)
+
+After installing with `cargo install pipewire-web-remote`:
+
+```bash
+pipewire-web-remote systemd install --enable --now
+```
+
+Or install without auto-enabling:
+
+```bash
+pipewire-web-remote systemd install
+systemctl --user enable --now pipewire-web-remote.service
+```
+
+#### Manual Service File Creation
+
+If you prefer manual setup, create `~/.config/systemd/user/pipewire-web-remote.service`:
+
+```ini
+[Unit]
+Description=PipeWire Web Remote Service
+Documentation=https://github.com/oudeis01/pipewire-web-remote
+After=pipewire.service
+Requires=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pipewire-web-remote --listen 127.0.0.1:8449
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
+```
+
+Then enable and start:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now pipewire-web-remote.service
+```
 
 ## License
 

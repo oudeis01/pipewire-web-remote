@@ -54,48 +54,110 @@ yay -S pipewire-web-remote-bin
 
 ## 사용 방법
 
-1. 서버 실행:
-   ```bash
-   ./target/release/pipewire-web-remote [port]
-   ```
-   (포트를 지정하지 않으면 기본값으로 8449가 사용됩니다)
+### 명령줄 옵션
 
-2. 웹 브라우저에서 `http://localhost:8449`(또는 지정한 포트)로 접속.
+```bash
+pipewire-web-remote [OPTIONS] [COMMAND]
 
-## 배포 (systemd --user)
+Options:
+  -l, --listen <HOST:PORT>  서버 주소 및 포트 지정 [기본값: 127.0.0.1:8449]
+      --allow-external      외부 접속 허용 (0.0.0.0으로 바인딩)
+  -h, --help                도움말 출력
+  -V, --version             버전 정보 출력
 
-서비스로 상시 구동하려면 다음 단계를 따르세요:
+Commands:
+  systemd    systemd 유저 서비스 설치 관리
+```
 
-1. 서비스 디렉토리 생성:
-   ```bash
-   mkdir -p ~/.config/systemd/user/
-   ```
+### 서버 실행
 
-2. 바이너리 복사 (예: `~/.local/bin/`):
-   ```bash
-   mkdir -p ~/.local/bin/
-   cp target/release/pipewire-web-remote ~/.local/bin/
-   ```
+**로컬호스트만 (기본값, 안전):**
+```bash
+pipewire-web-remote
+# 서버가 http://127.0.0.1:8449 에서 실행됩니다
+```
 
-3. `~/.config/systemd/user/pwr.service` 파일 작성:
-   ```ini
-   [Unit]
-   Description=PipeWire Web Remote Service
-   After=pipewire.service
+**커스텀 포트:**
+```bash
+pipewire-web-remote --listen 127.0.0.1:9000
+```
 
-   [Service]
-   ExecStart=%h/.local/bin/pipewire-web-remote
-   Restart=always
+**외부 접속 허용 (⚠ 보안 경고):**
+```bash
+pipewire-web-remote --allow-external
+# 서버가 http://0.0.0.0:8449 에서 실행됩니다
+# 방화벽 설정을 확인하세요!
+```
 
-   [Install]
-   WantedBy=default.target
-   ```
+### 웹 인터페이스
 
-4. 서비스 활성화 및 시작:
-   ```bash
-   systemctl --user daemon-reload
-   systemctl --user enable --now pwr
-   ```
+웹 브라우저에서 `http://localhost:8449` (또는 지정한 포트)로 접속하세요.
+
+## 배포
+
+### Systemd 유저 서비스
+
+#### AUR 패키지에서 설치한 경우
+
+systemd 유저 서비스 파일이 `/usr/lib/systemd/user/`에 자동으로 설치됩니다.
+
+서비스 활성화 및 시작:
+
+```bash
+systemctl --user enable --now pipewire-web-remote.service
+```
+
+부팅 시 자동 시작 (로그아웃 상태에서도):
+
+```bash
+loginctl enable-linger $USER
+```
+
+#### 소스에서 빌드한 경우 (cargo install)
+
+`cargo install pipewire-web-remote`로 설치한 후:
+
+```bash
+pipewire-web-remote systemd install --enable --now
+```
+
+또는 자동 활성화 없이 설치만:
+
+```bash
+pipewire-web-remote systemd install
+systemctl --user enable --now pipewire-web-remote.service
+```
+
+#### 수동 서비스 파일 생성
+
+수동 설정을 선호하는 경우, `~/.config/systemd/user/pipewire-web-remote.service` 파일 생성:
+
+```ini
+[Unit]
+Description=PipeWire Web Remote Service
+Documentation=https://github.com/oudeis01/pipewire-web-remote
+After=pipewire.service
+Requires=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pipewire-web-remote --listen 127.0.0.1:8449
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
+```
+
+그 후 활성화 및 시작:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now pipewire-web-remote.service
+```
 
 ## 라이선스
 
