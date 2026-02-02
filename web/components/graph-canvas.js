@@ -288,12 +288,21 @@ export class GraphCanvas extends HTMLElement {
     }
 
     normalizeEvent(e) {
+        // For touch events, use e.touches for ongoing touches, e.changedTouches for touchend
         if (e.touches && e.touches.length > 0) {
             return {
                 clientX: e.touches[0].clientX,
                 clientY: e.touches[0].clientY,
                 originalEvent: e,
                 touches: e.touches
+            };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            // touchend uses changedTouches (e.touches is empty)
+            return {
+                clientX: e.changedTouches[0].clientX,
+                clientY: e.changedTouches[0].clientY,
+                originalEvent: e,
+                touches: []
             };
         }
         return {

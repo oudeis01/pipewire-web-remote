@@ -91,6 +91,6 @@ jobs:
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          updpkgsums: true
+          updpkgsums: false
           assets: |
             pipewire-web-remote.install
