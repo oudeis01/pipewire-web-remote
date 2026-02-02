@@ -11,6 +11,17 @@ PipeWire 오디오 시스템을 위한 원격 제어 웹 인터페이스입니�
 - **실시간 로그**: 설정(Setup) 뷰에서 WebSocket을 통한 실시간 시스템 로그 스트리밍.
 - **아키텍처**: Rust/Axum 백엔드 및 내장된(Embedded) Vanilla JS/Web Components 프론트엔드.
 
+## 스크린샷
+
+*이미지를 클릭하면 크게 볼 수 있습니다*
+
+| 데스크톱 화면 | 모바일 화면 |
+|:------------:|:-----------:|
+| **페이더 (믹서)** | **페이더 (믹서)** |
+| <a href="imgs/desktop-fader-view.jpg"><img src="imgs/desktop-fader-view.jpg" width="400"></a> | <a href="imgs/mobile-fader-view-rotated.jpg"><img src="imgs/mobile-fader-view-rotated.jpg" width="300"></a> |
+| **패치베이 (오디오 라우팅)** | **패치베이 (오디오 라우팅)** |
+| <a href="imgs/desktop-patchbay-view.jpg"><img src="imgs/desktop-patchbay-view.jpg" width="400"></a> | <a href="imgs/mobile-patchbay-view.jpg"><img src="imgs/mobile-patchbay-view.jpg" width="300"></a> |
+
 ## 사전 요구 사항
 
 - PipeWire 및 WirePlumber가 설치된 Linux OS.

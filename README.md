@@ -11,6 +11,17 @@ A remote control web interface for PipeWire audio systems.
 - **Live Logging**: Real-time system log streaming via WebSockets in the Setup view.
 - **Architecture**: Rust/Axum backend with embedded Vanilla JS/Web Components frontend.
 
+## Screenshots
+
+*Click images to view full size*
+
+| Desktop View | Mobile View |
+|:------------:|:-----------:|
+| **Fader (Mixer)** | **Fader (Mixer)** |
+| <a href="imgs/desktop-fader-view.jpg"><img src="imgs/desktop-fader-view.jpg" width="400"></a> | <a href="imgs/mobile-fader-view-rotated.jpg"><img src="imgs/mobile-fader-view-rotated.jpg" width="300"></a> |
+| **Patchbay (Audio Routing)** | **Patchbay (Audio Routing)** |
+| <a href="imgs/desktop-patchbay-view.jpg"><img src="imgs/desktop-patchbay-view.jpg" width="400"></a> | <a href="imgs/mobile-patchbay-view.jpg"><img src="imgs/mobile-patchbay-view.jpg" width="300"></a> |
+
 ## Prerequisites
 
 - Linux OS with PipeWire and WirePlumber.
