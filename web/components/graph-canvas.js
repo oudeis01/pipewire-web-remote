@@ -276,9 +276,11 @@ export class GraphCanvas extends HTMLElement {
         document.addEventListener('mousemove', (e) => this.onPointerMove(e));
         document.addEventListener('mouseup', (e) => this.onPointerUp(e));
         
-        svg.addEventListener('touchstart', (e) => this.onPointerDown(e), { passive: false });
+        // Touch events on document for consistency and to prevent losing drag state
+        document.addEventListener('touchstart', (e) => this.onPointerDown(e), { passive: false });
         document.addEventListener('touchmove', (e) => this.onPointerMove(e), { passive: false });
         document.addEventListener('touchend', (e) => this.onPointerUp(e));
+        document.addEventListener('touchcancel', (e) => this.onPointerUp(e));
 
         svg.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
     }
@@ -325,13 +327,24 @@ export class GraphCanvas extends HTMLElement {
         const normalized = this.normalizeEvent(e);
         const { clientX, clientY, touches } = normalized;
 
-        if (touches.length === 2) {
+        // Ignore multi-touch if we're already dragging something
+        if (this.dragState.active && touches.length > 1) {
+            return;
+        }
+
+        // Handle pinch zoom only if not already dragging
+        if (!this.dragState.active && touches.length === 2) {
             this.dragState = {
                 type: 'pinch',
                 active: true,
                 initialPinchDistance: this.getDistance(touches[0], touches[1]),
                 initialPinchScale: this.scale
             };
+            return;
+        }
+
+        // Skip if multi-touch but not a pinch gesture
+        if (touches.length > 1) {
             return;
         }
 
@@ -411,11 +424,13 @@ export class GraphCanvas extends HTMLElement {
         const rect = this.shadowRoot.getElementById('svg-root').getBoundingClientRect();
         const { clientX, clientY, touches } = normalized;
 
-        if (this.dragState.type === 'pinch' && touches.length === 2) {
-            const currentDistance = this.getDistance(touches[0], touches[1]);
-            const scaleFactor = currentDistance / this.dragState.initialPinchDistance;
-            this.scale = Math.max(0.1, Math.min(this.dragState.initialPinchScale * scaleFactor, 5.0));
-            this.updateViewportTransform();
+        if (this.dragState.type === 'pinch') {
+            if (touches.length === 2) {
+                const currentDistance = this.getDistance(touches[0], touches[1]);
+                const scaleFactor = currentDistance / this.dragState.initialPinchDistance;
+                this.scale = Math.max(0.1, Math.min(this.dragState.initialPinchScale * scaleFactor, 5.0));
+                this.updateViewportTransform();
+            }
         } else if (this.dragState.type === 'link') {
             const x = (clientX - rect.left - this.panOffset.x) / this.scale;
             const y = (clientY - rect.top - this.panOffset.y) / this.scale;
