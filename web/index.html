@@ -7,6 +7,22 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
     <title>PipeWire Web Remote</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react/": "https://esm.sh/react@18.2.0/",
+            "react-dom": "https://esm.sh/react-dom@18.2.0",
+            "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+            "styled-components": "https://esm.sh/styled-components@6.1.8?external=react,react-dom",
+            "rete": "https://esm.sh/rete@2.0.3",
+            "rete-area-plugin": "https://esm.sh/rete-area-plugin@2.0.3?external=rete",
+            "rete-connection-plugin": "https://esm.sh/rete-connection-plugin@2.0.2?external=rete,rete-area-plugin",
+            "rete-render-utils": "https://esm.sh/rete-render-utils@2.0.2?external=rete,rete-area-plugin",
+            "rete-react-plugin": "https://esm.sh/rete-react-plugin@2.0.3?external=rete,rete-area-plugin,rete-render-utils,react,react-dom,styled-components"
+        }
+    }
+    </script>
     <style>
         :root {
             --bg-color: #121212;

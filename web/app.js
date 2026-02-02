@@ -3,7 +3,7 @@ import { VolumeView } from './views/volume.js';
 import { PatchbayView } from './views/patchbay.js';
 import { SetupView } from './views/setup.js';
 import './components/slider.js';
-import './components/graph-canvas.js';
+import './components/rete-graph.js';
 
 class App {
     constructor() {

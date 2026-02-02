@@ -2,13 +2,15 @@ export class PatchbayView {
     constructor(api) {
         this.api = api;
         this.element = null;
+        this.refreshTimeout = null;
     }
 
     render() {
         this.element = document.createElement('div');
         this.element.className = 'patchbay-view';
+        this.element.style.cssText = 'width: 100%; height: 100%;';
         this.element.innerHTML = `
-            <graph-canvas id="graph"></graph-canvas>
+            <rete-graph id="graph"></rete-graph>
         `;
 
         this.loadGraph();
@@ -21,7 +23,7 @@ export class PatchbayView {
     async loadGraph() {
         try {
             const graph = await this.api.getGraph();
-            const canvas = this.element.querySelector('graph-canvas');
+            const canvas = this.element.querySelector('rete-graph');
             if (canvas) {
                 canvas.setGraph(graph);
             }
@@ -31,9 +33,11 @@ export class PatchbayView {
     }
 
     setupRealtime() {
-        const refresh = () => this.loadGraph();
+        const refresh = () => {
+            if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
+            this.refreshTimeout = setTimeout(() => this.loadGraph(), 100);
+        };
         
-        // Listen to all graph events
         this.api.on('DeviceAdded', refresh);
         this.api.on('DeviceRemoved', refresh);
         this.api.on('PortAdded', refresh);
@@ -43,7 +47,7 @@ export class PatchbayView {
     }
 
     setupInteraction() {
-        const canvas = this.element.querySelector('graph-canvas');
+        const canvas = this.element.querySelector('rete-graph');
         
         canvas.addEventListener('link-create', async (e) => {
             const { outputNode, outputPort, inputNode, inputPort } = e.detail;
