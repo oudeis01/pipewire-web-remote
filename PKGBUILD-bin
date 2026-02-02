@@ -1,7 +1,7 @@
 # Maintainer: ChoihHaram <altitudinem at google dot com>
 pkgname=pipewire-web-remote-bin
 _pkgname=pipewire-web-remote
-pkgver=0.1.1
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="A remote control web interface for PipeWire audio systems (Pre-compiled binary)"
 arch=('x86_64' 'aarch64' 'armv7h')
