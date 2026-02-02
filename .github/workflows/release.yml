@@ -81,6 +81,8 @@ jobs:
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           updpkgsums: true
+          assets: |
+            pipewire-web-remote.install
       - name: Publish AUR (Binary)
         uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
