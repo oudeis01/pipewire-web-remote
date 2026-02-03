@@ -1,6 +1,6 @@
 # Maintainer: Haram Choi <altitudinem at google dot com>
 pkgname=pipewire-web-remote
-pkgver=0.2.0
+pkgver=0.2.1
 pkgrel=1
 pkgdesc="A remote control web interface for PipeWire audio systems"
 arch=('x86_64')
